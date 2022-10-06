@@ -1,0 +1,105 @@
+{{- $fullName := include "firely-server.fullname" . -}}
+{{- $validationName := printf "%s-validation" $fullName }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "firely-server.fullname" . }}
+  labels:
+    {{- include "firely-server.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "firely-server.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "firely-server.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/configmap: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/settings.configmap: {{ include (print $.Template.BasePath "/settings-configmap.yaml") . | sha256sum }}
+    spec:
+      initContainers:
+      {{- range $index, $plugin := .Values.plugins }}
+      - name: download-plugin-{{ $index }}
+        image: alpine
+        command: ['sh', '-c', 'wget -O plugin{{$index}}.dll "{{ $plugin.url }}" && echo "{{ $plugin.checksum }} *plugin{{$index}}.dll" | sha256sum -c && mv  plugin{{$index}}.dll /plugin-dir']
+        volumeMounts:
+        - name: plugindir
+          mountPath: "/plugin-dir"
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 4080
+              protocol: TCP
+          livenessProbe:
+{{ toYaml .Values.livenessProbe | indent 12 }}
+          readinessProbe:
+{{ toYaml .Values.readinessProbe | indent 12 }}
+          envFrom:
+          - configMapRef:
+             name: {{ include "firely-server.fullname" . }}-conf
+          {{- if .Values.validation.enabled }}
+          env:
+          - name: VONK_Validation__Endpoint
+            value: "http://{{ $validationName }}:{{ .Values.validation.port }}/api/Validate"
+          {{- end }}
+          volumeMounts:
+          - name: firely-server-storage
+            mountPath: /var/run/vonk
+          - name: firely-server-license
+            mountPath: /var/run/license
+            readOnly: true
+          - name: firely-server-settings
+            mountPath: /app/appsettings.json
+            subPath: appsettings.json
+          - name: firely-server-settings
+            mountPath: /app/logsettings.json
+            subPath: logsettings.json
+          - name: plugindir
+            mountPath: /app/plugins/downloaded-plugins
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+      volumes:
+      - name: firely-server-storage
+      {{- if .Values.persistence.enabled }}
+        persistentVolumeClaim:
+          {{- if .Values.persistence.existingPVClaim }}
+          claimName: {{ .Values.persistence.existingPVClaim }}
+          {{- else }}
+          claimName: {{ include "firely-server.fullname" . }}-claim
+          {{- end -}}
+      {{- else }}
+        emptyDir: {}
+      {{- end }}
+      - name: firely-server-settings
+        configMap:
+          name: {{ include "firely-server.fullname" . }}-settings-json
+      - name: firely-server-license
+        {{- if .Values.license.secretName }}
+        secret:
+          secretName: {{ .Values.license.secretName  }}
+        {{- else if .Values.license.value }}
+        secret:
+          secretName: {{ include "firely-server.fullname" . }}-license-secret
+        {{- else }}
+        emptyDir: {}
+        {{- end }}
+      - name: plugindir
+        emptyDir: {}
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}

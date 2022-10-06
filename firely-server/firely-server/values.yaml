@@ -1,0 +1,68 @@
+affinity: {}
+fullnameOverride: ""
+image:
+  pullPolicy: IfNotPresent
+  repository: firely/server
+  tag: 4.8.2
+ingress:
+  annotations: {}
+  certIssuer: letsencrypt-production
+  enabled: false
+  hosts: []
+  ingressClass: nginx
+  path: /
+  pathType: Prefix
+  tls: []
+license:
+  fileName: firelyserver-license.json
+  requestInfoFile: null
+  secretName: null
+  value: null
+  writeRequestInfoFileInterval: null
+livenessProbe:
+  failureThreshold: 3
+  httpGet:
+    path: /metadata?_elements=status
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 120
+  successThreshold: 1
+  timeoutSeconds: 5
+logsettings: {}
+nameOverride: ""
+nodeSelector: {}
+persistence:
+  enabled: false
+plugins: []
+readinessProbe:
+  failureThreshold: 3
+  httpGet:
+    path: /metadata?_elements=status
+    port: http
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 5
+replicaCount: 1
+resources: {}
+service:
+  port: 80
+  type: LoadBalancer
+tolerations: []
+validation:
+  affinity: {}
+  enabled: false
+  image:
+    pullPolicy: IfNotPresent
+    registry: firely.azurecr.io
+    repository: firely/firely-cloud-components
+    tag: latest
+  nodeSelector: {}
+  persistence:
+    carfilePVClaim: null
+  port: 8080
+  replicaCount: 1
+  resources: {}
+  tolerations: []
+validationsettings: {}
+vonksettings: {}
