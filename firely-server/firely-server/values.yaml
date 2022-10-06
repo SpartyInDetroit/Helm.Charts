@@ -13,6 +13,7 @@ ingress:
   path: /
   pathType: Prefix
   tls: []
+kubeVersion: ""
 license:
   fileName: firelyserver-license.json
   requestInfoFile: null

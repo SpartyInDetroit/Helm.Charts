@@ -46,6 +46,7 @@ The following table lists the configurable parameters of the firely-server chart
 | -------------------------------------------------------- | ------------------------------------------------------------------------- | --------------------------------------------------- |
 | `nameOverride`                                           | String to partially override firely-server.fullname template (will maintain the release name) | `""`
 | `fullnameOverride`                                       | String to fully override firely-server.fullname template | `""` |
+| `kubeVersion`                                            | Force target Kubernetes version (using Helm capabilities if not set) | `""` |
 
 ### Firely Server parameters
  Name                                                      | Description                                                               | Default                                             |

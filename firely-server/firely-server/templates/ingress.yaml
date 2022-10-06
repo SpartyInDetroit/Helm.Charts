@@ -2,14 +2,17 @@
 {{- $fullName := include "firely-server.fullname" . -}}
 {{- $ingressPath := .Values.ingress.path -}}
 {{- $ingressPathType := .Values.ingress.pathType -}}
-apiVersion: networking.k8s.io/v1
+{{- if and .Values.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
+  {{- if not (hasKey .Values.ingress.annotations "kubernetes.io/ingress.class") }}
+  {{- $_ := set .Values.ingress.annotations "kubernetes.io/ingress.class" .Values.ingress.className}}
+  {{- end }}
+{{- end }}apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ $fullName }}
   labels:
     {{- include "firely-server.labels" . | nindent 4 }}
   annotations:
-    kubernetes.io/ingress.class: "{{ .Values.ingress.ingressClass }}"
 {{- if .Values.ingress.tls }}
     cert-manager.io/cluster-issuer: "{{ .Values.ingress.certIssuer }}"
 {{- end }}
@@ -17,6 +20,9 @@ metadata:
 {{ toYaml . | indent 4 }}
 {{- end }}
 spec:
+  {{- if and .Values.ingress.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
 {{- if .Values.ingress.tls }}
   tls:
   {{- range .Values.ingress.tls }}
