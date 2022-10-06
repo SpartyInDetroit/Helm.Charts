@@ -1,0 +1,15 @@
+# helm template . --debug --values .\test-values.yaml  > output.yaml
+
+ingress:
+  annotations: {
+    mytest.annotation: mytest.annotationvalue
+  }
+  certIssuer: letsencrypt-production
+  enabled: true
+  hosts:
+    - google.com
+  ingressClass: nginx
+  path: /my-test-path
+  pathType: Prefix
+  tls: []
+kubeVersion: 1.17.0
