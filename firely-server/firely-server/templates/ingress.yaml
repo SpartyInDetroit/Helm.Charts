@@ -1,13 +1,17 @@
 {{- if .Values.ingress.enabled -}}
 {{- $fullName := include "firely-server.fullname" . -}}
 {{- $ingressPath := .Values.ingress.path -}}
+{{- $kubeVersion:= (eq .Values.kubeVersion nil) | ternary .Capabilities.KubeVersion.GitVersion .Values.kubeVersion -}}
 {{- $ingressPathType := .Values.ingress.pathType -}}
-{{- if and .Values.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
+{{- if and .Values.ingress.className (not (semverCompare ">=1.18-0" $kubeVersion)) }}
   {{- if not (hasKey .Values.ingress.annotations "kubernetes.io/ingress.class") }}
   {{- $_ := set .Values.ingress.annotations "kubernetes.io/ingress.class" .Values.ingress.className}}
   {{- end }}
 {{- end }}apiVersion: networking.k8s.io/v1
 kind: Ingress
+# KubeVersion: {{ $kubeVersion }}
+# .Capabilities.KubeVersion.GitVersion: {{ .Capabilities.KubeVersion.GitVersion }}
+# .Values.kubeVersion: {{ .Values.kubeVersion }}
 metadata:
   name: {{ $fullName }}
   labels:
@@ -20,7 +24,7 @@ metadata:
 {{ toYaml . | indent 4 }}
 {{- end }}
 spec:
-  {{- if and .Values.ingress.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
+  {{- if and .Values.ingress.className (semverCompare ">=1.18-0" $kubeVersion) }}
   ingressClassName: {{ .Values.ingress.className }}
   {{- end }}
 {{- if .Values.ingress.tls }}

@@ -1,0 +1,165 @@
+---
+# Source: firely-server/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: release-name-firely-server-conf
+  labels:
+    helm.sh/chart: firely-server-0.11.1
+    app.kubernetes.io/name: firely-server
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "4.8.2"
+    app.kubernetes.io/managed-by: Helm
+data:
+  VONK_License__LicenseFile : /var/run/license/firelyserver-license.json
+---
+# Source: firely-server/templates/settings-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: release-name-firely-server-settings-json
+  labels:
+    helm.sh/chart: firely-server-0.11.1
+    app.kubernetes.io/name: firely-server
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "4.8.2"
+    app.kubernetes.io/managed-by: Helm
+data:
+  appsettings.json: |- 
+    {}
+  logsettings.json: |- 
+    {}
+---
+# Source: firely-server/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: release-name-firely-server
+  labels:
+    helm.sh/chart: firely-server-0.11.1
+    app.kubernetes.io/name: firely-server
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "4.8.2"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: firely-server
+    app.kubernetes.io/instance: release-name
+---
+# Source: firely-server/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: release-name-firely-server
+  labels:
+    helm.sh/chart: firely-server-0.11.1
+    app.kubernetes.io/name: firely-server
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "4.8.2"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: firely-server
+      app.kubernetes.io/instance: release-name
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: firely-server
+        app.kubernetes.io/instance: release-name
+      annotations:
+        checksum/configmap: c93c8ede29eac1d927a3db7de1edc9576d95ed0250b3b6c6b97d8cc240680c60
+        checksum/settings.configmap: 779928f387b0f0d4d1ebaa3342a86d90cd1c29b2ab52e70e5d38e05929117485
+    spec:
+      initContainers:
+      containers:
+        - name: firely-server
+          image: "firely/server:4.8.2"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 4080
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /metadata?_elements=status
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 120
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /metadata?_elements=status
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          envFrom:
+          - configMapRef:
+             name: release-name-firely-server-conf
+          volumeMounts:
+          - name: firely-server-storage
+            mountPath: /var/run/vonk
+          - name: firely-server-license
+            mountPath: /var/run/license
+            readOnly: true
+          - name: firely-server-settings
+            mountPath: /app/appsettings.json
+            subPath: appsettings.json
+          - name: firely-server-settings
+            mountPath: /app/logsettings.json
+            subPath: logsettings.json
+          - name: plugindir
+            mountPath: /app/plugins/downloaded-plugins
+          resources:
+            {}
+      volumes:
+      - name: firely-server-storage
+        emptyDir: {}
+      - name: firely-server-settings
+        configMap:
+          name: release-name-firely-server-settings-json
+      - name: firely-server-license
+        emptyDir: {}
+      - name: plugindir
+        emptyDir: {}
+---
+# Source: firely-server/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+# KubeVersion: 1.17.0
+# .Capabilities.KubeVersion.GitVersion: v1.25.0
+# .Values.kubeVersion: 1.17.0
+metadata:
+  name: release-name-firely-server
+  labels:
+    helm.sh/chart: firely-server-0.11.1
+    app.kubernetes.io/name: firely-server
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "4.8.2"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    mytest.annotation: mytest.annotationvalue
+spec:
+  rules:
+    - host: "google.com"
+      http:
+        paths:
+          - path: /my-test-path
+            pathType: Prefix
+            backend:
+              service:
+                name: release-name-firely-server
+                port:
+                  name: http
